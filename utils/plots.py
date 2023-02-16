@@ -105,17 +105,17 @@ class Annotator:
             h=int(box[3])-int(box[1])
             center_x = (x + (w+x )) // 2
             center_y = (y + (h+y )) // 2
-            l=y+w
-            b=x+h
-            area = 2*(l+b)
+            l=y+h
+            b=x+w
+            area = l*b
             radius = int(np.sqrt(area / math.pi))
             cv2.circle(self.im, (center_x,center_y), radius, (0, 0, 225), 2)
-            if label:
+            '''if label:
                 tf = max(self.lw - 1, 1)  # font thickness
                 w, h = cv2.getTextSize(label, 0, fontScale=self.lw / 3, thickness=tf)[0]  # text width, height
                 outside = p1[1] - h >= 3
                 p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-                '''cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled
+                cv2.rectangle(self.im, p1, p2, color, -1, cv2.LINE_AA)  # filled
                 cv2.putText(self.im,
                             label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
                             0,
