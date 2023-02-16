@@ -105,9 +105,7 @@ class Annotator:
             h=int(box[3])-int(box[1])
             center_x = (x + (w+x )) // 2
             center_y = (y + (h+y )) // 2
-            l=y+h
-            b=x+w
-            area = l*b
+            area = w*h
             radius = int(np.sqrt(area / math.pi))
             cv2.circle(self.im, (center_x,center_y), radius, (0, 0, 225), 2)
             '''if label:
