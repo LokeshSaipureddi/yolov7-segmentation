@@ -155,7 +155,7 @@ def run(
                 for c in det[:, 5].unique():
                     n = (det[:, 5] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-                print("The count is :"+n)
+                print("The count is :"+str(n))
                 # Mask plotting ----------------------------------------------------------------------------------------
                 mcolors = [colors(int(6), True) for cls in det[:, 5]]
                 im_masks = plot_masks(im[i], masks, mcolors)  # image with masks shape(imh,imw,3)
