@@ -82,7 +82,7 @@ class Annotator:
             self.im = im
         self.lw = line_width or max(round(sum(im.shape) / 2 * 0.003), 2)  # line width
 
-    def box_label(self, box, label='', color=(128, 128, 128), txt_color=(255, 255, 255)):
+    def box_label(self, box, l1,label='',color=(128, 128, 128), txt_color=(255, 255, 255)):
         # Add one xyxy box to image with label
         if self.pil or not is_ascii(label):
             self.draw.rectangle(box, width=self.lw, outline=color)  # box
@@ -99,15 +99,19 @@ class Annotator:
         else:  # cv2
             #p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
             #cv2.rectangle(self.im, p1, p2, color, thickness=self.lw, lineType=cv2.LINE_AA)
+            l=[]
             x=int(box[0])
             y=int(box[1])
             w=int(box[2])-int(box[0])
             h=int(box[3])-int(box[1])
             center_x = (x + (w+x )) // 2
             center_y = (y + (h+y )) // 2
+            l.append(center_x)
+            l.append(center_y)
             area = w*h
             radius = int(np.sqrt(area / math.pi))
-            cv2.circle(self.im, (center_x,center_y), radius, (0, 0, 225), 2)
+            l.append(radius)
+            l1.append(l)
             '''if label:
                 tf = max(self.lw - 1, 1)  # font thickness
                 w, h = cv2.getTextSize(label, 0, fontScale=self.lw / 3, thickness=tf)[0]  # text width, height
@@ -121,7 +125,33 @@ class Annotator:
                             txt_color,
                             thickness=tf,
                             lineType=cv2.LINE_AA)'''
+        return l1
 
+    def remove_overlapping_circles(self,circles):
+      to_remove = []
+      for i in range(len(circles)):
+          for j in range(i+1, len(circles)):
+              overlap = get_circle_overlap(circles[i], circles[j])
+              if overlap > 0.5:
+                  if circles[i][2] > circles[j][2]:
+                      to_remove.append(j)
+                  else:
+                      to_remove.append(i)
+      return [circles[i] for i in range(len(circles)) if i not in to_remove]
+
+    def wrlbl(self,c):
+      pixelsPerMetric = int(self.im.shape[1] / 5)
+      aa=0
+      bb=0
+      for i in c:
+        db=(i[2]/pixelsPerMetric)*100
+        if db*2>10: 
+          cv2.circle(self.im,(i[0],i[1]),i[2],(0, 255, 0), 2)
+          aa=aa+1
+        elif db*2<=10:
+          cv2.circle(self.im,(i[0],i[1]),i[2],(0, 0, 255), 2)
+          bb=bb+1
+      return aa,bb      
 
     def draw_trk(self,thickness,centroids):
         [cv2.line(self.im, (int(centroids.centroids[i][0]),int(centroids.centroids[i][1])),
@@ -167,6 +197,16 @@ class Annotator:
         # Return annotated image as array
         return np.asarray(self.im)
 
+def get_circle_overlap(circle1, circle2):
+      distance = math.sqrt((circle1[0]-circle2[0])**2 + (circle1[1]-circle2[1])**2)
+      if distance >= circle1[2] + circle2[2]:
+          return 0
+      if distance <= abs(circle1[2] - circle2[2]):
+          return 1
+      alpha1 = math.acos((circle1[2]**2 + distance**2 - circle2[2]**2)/(2*circle1[2]*distance))
+      alpha2 = math.acos((circle2[2]**2 + distance**2 - circle1[2]**2)/(2*circle2[2]*distance))
+      intersection_area = alpha1*circle1[2]**2 + alpha2*circle2[2]**2 - 0.5*math.sin(2*alpha1)*circle1[2]**2 - 0.5*math.sin(2*alpha2)*circle2[2]**2
+      return intersection_area/(math.pi*min(circle1[2]**2,circle2[2]**2))
 
 def feature_visualization(x, module_type, stage, n=32, save_dir=Path('runs/detect/exp')):
     """
