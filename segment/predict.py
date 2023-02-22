@@ -157,9 +157,9 @@ def run(
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                 print("The count is :"+str(n))
                 # Mask plotting ----------------------------------------------------------------------------------------
-                mcolors = [colors(int(6), True) for cls in det[:, 5]]
+                '''mcolors = [colors(int(6), True) for cls in det[:, 5]]
                 im_masks = plot_masks(im[i], masks, mcolors)  # image with masks shape(imh,imw,3)
-                annotator.im = scale_masks(im.shape[2:], im_masks, im0.shape)  # scale to original h, w
+                annotator.im = scale_masks(im.shape[2:], im_masks, im0.shape) ''' # scale to original h, w
                 # Mask plotting ----------------------------------------------------------------------------------------
 
                 if trk:
@@ -181,7 +181,7 @@ def run(
                         identities = tracked_dets[:, 8]
                         categories = tracked_dets[:, 4]
                         annotator.draw_id(bbox_xyxy, identities, categories, names)
-            
+                l1=[]
                 # Write results
                 for j, (*xyxy, conf, cls) in enumerate(reversed(det[:, :6])):
                     if save_txt:  # Write to file
@@ -189,17 +189,35 @@ def run(
                         line = (cls, *segj, conf) if save_conf else (cls, *segj)  # label format
                         with open(f'{txt_path}.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
-
+                    
                     if save_img or save_crop or view_img:  # Add bbox to image
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
-                        annotator.box_label(xyxy, label, color=colors(c, True))
+                        ja=annotator.box_label(xyxy,l1, label, color=colors(c, True))
+                c=annotator.remove_overlapping_circles(ja)
+                aa,bb=annotator.wrlbl(c)
+                print(len(c))
+                for j, (*xyxy, conf, cls) in enumerate(reversed(det[:, :6])):
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
             # Stream results
             im0 = annotator.result()
-            cv2.putText(im0, f'Count {int(n)} ', (0,50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 128, 229), 2)
+            n=aa+bb
+            new_image = np.zeros((im0.shape[0]+103, im0.shape[1], 3), dtype=np.uint8)
+            new_image[:, :] = (0,0,0)
+
+            # Paste the original image onto the new image
+            new_image[103:im0.shape[0]+103, :] = im0
+
+            # Add text to the top of the image
+            text = 'Example Text'
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 1
+            font_thickness = 2
+            cv2.putText(new_image, f'Count {int(n)}', (0,33), cv2.FONT_HERSHEY_COMPLEX, 1, (255,255,255), 2)
+            cv2.putText(new_image,f'Diameter <= 10 cm : {int(bb)}', (0,66), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
+            cv2.putText(new_image,f'Diameter > 10 cm : {int(aa)}', (0,99), cv2.FONT_HERSHEY_COMPLEX, 1, (0,255,0), 2)
             if view_img:
                 if platform.system() == 'Linux' and p not in windows:
                     windows.append(p)
@@ -211,7 +229,7 @@ def run(
             # Save results (image with detections)
             if save_img:
                 if dataset.mode == 'image':
-                    cv2.imwrite(save_path, im0)
+                    cv2.imwrite(save_path, new_image)
                 else:  # 'video' or 'stream'
                     if vid_path[i] != save_path:  # new video
                         vid_path[i] = save_path
@@ -283,3 +301,21 @@ def main(opt):
 if __name__ == "__main__":
     opt = parse_opt()
     main(opt)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
